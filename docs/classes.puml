@@ -1,0 +1,38 @@
+@startuml
+title ТОРГОВЛЯ — диаграмма классов предметной области
+hide circle
+skinparam classAttributeIconSize 0
+class Department as "Отдел (Department)" {
+  +id: bigint <<PK>>
+  +code: varchar(30) <<unique>>
+  +name: varchar(255)
+  +manager_name: varchar(255)
+  +phone: varchar(30)
+  +daily_plan: decimal(14,2)
+  +sales(): HasMany
+}
+class Product as "Товар (Product)" {
+  +id: bigint <<PK>>
+  +sku: varchar(50) <<unique>>
+  +name: varchar(255)
+  +unit: varchar(30)
+  +retail_price: decimal(14,2)
+  +sales(): HasMany
+}
+class Sale as "Продажа (Sale)" {
+  +id: bigint <<PK>>
+  +department_id: bigint <<FK, NOT NULL>>
+  +product_id: bigint <<FK, NOT NULL>>
+  +sale_date: date
+  +quantity: decimal(12,3)
+  +unit_price: decimal(14,2)
+  +department(): BelongsTo
+  +product(): BelongsTo
+}
+Department "1" -- "1..*" Sale : осуществляет
+Product "1" -- "0..*" Sale : участвует
+note bottom of Sale
+Одна запись — продажа одного товара одним отделом.
+unit_price фиксирует цену на момент регистрации продажи.
+end note
+@enduml

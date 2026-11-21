@@ -1,0 +1,53 @@
+Лабораторная работа №9 — ТОРГОВЛЯ
+
+Откройте docs/report.html в браузере: описание решения и диаграмма классов.
+В каталоге находится полный каркас Laravel 11 с исходным кодом приложения.
+vendor не включён; зависимости устанавливаются Composer или при сборке Docker.
+
+ВАРИАНТ 1. DOCKER DESKTOP (Linux containers)
+Откройте PowerShell в каталоге trade-api. Запустите Docker Desktop.
+Выполните:
+  docker compose up -d --build
+  docker compose exec api php artisan migrate --force
+  docker compose exec api php artisan route:list --path=api
+API: http://localhost:8000/api/products
+Остановка с сохранением БД:
+  docker compose down
+Пароли и APP_KEY в compose.yaml — локальные учебные значения.
+
+ТЕСТЫ (изолированная тестовая БД, не рабочая)
+  docker compose --profile test up -d --wait test-db
+  docker compose exec api php artisan test --configuration=phpunit.mysql.xml
+RefreshDatabase очищает только trade_test. Не подменяйте её рабочей БД.
+
+ВАРИАНТ 2. PHP 8.2+ / COMPOSER 2 / MYSQL 8.0.16+
+Нужны стандартные расширения Laravel, включая pdo_mysql, mbstring, xml, dom.
+  composer install
+  Copy-Item .env.example .env
+Создайте пустую БД trade с кодировкой utf8mb4 в MySQL и пользователя с правами
+на неё. В .env укажите DB_HOST, DB_PORT, DB_USERNAME и DB_PASSWORD.
+  php artisan key:generate
+  php artisan migrate
+  php artisan serve
+Сборка Node/Vite для API не нужна.
+
+ПРИМЕРЫ
+Файл requests.http содержит последовательность запросов для HTTP-клиента
+редактора. В пустой БД первый товар и отдел получают id=1. В иной БД замените
+id на значения из ответов. Начальные данные автоматически не добавляются.
+
+ПРОВЕРКА В СРЕДЕ СОЗДАНИЯ
+PHP/Composer не найдены в PATH; Docker Engine недоступен.
+Для проверки скачан отдельный PHP CLI в рабочий каталог без установки в систему.
+Проверка php -l прошла для всех 41 PHP-файла (PHP 8.3.37).
+docker compose config --quiet также прошла успешно.
+Поэтому миграции и интеграционные тесты в этой среде не выполнялись.
+Тесты включены в tests/Feature/Trade; выполните их командами выше после запуска.
+
+ДОПУЩЕНИЯ И ОГРАНИЧЕНИЯ
+Объём реализации в день принят за дневной план. Подробности в docs/report.html.
+План постоянный, исторические планы не ведутся. Нет складских остатков,
+возвратов и авторизации — эти требования в задании отсутствуют.
+Внешние ключи запрещают удаление объектов с продажами. Отдел создаётся с
+первой продажей; его последняя продажа защищена от удаления и переноса.
+Товар может не продаваться. Цена продажи фиксируется отдельно от цены товара.

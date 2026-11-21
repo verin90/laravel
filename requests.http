@@ -1,0 +1,49 @@
+@base = http://localhost:8000/api
+
+### 1. Товар
+POST {{base}}/products
+Content-Type: application/json
+Accept: application/json
+
+{"sku":"A-001","name":"Чай","unit":"упак","retail_price":"125.50"}
+
+### 2. Отдел с первой продажей (product_id из ответа шага 1)
+POST {{base}}/departments
+Content-Type: application/json
+Accept: application/json
+
+{"code":"D-01","name":"Бакалея","manager_name":"Иванов Иван Иванович","phone":"+7 4012 00-00-00","daily_plan":"1000.00","initial_sale":{"product_id":1,"sale_date":"2026-05-01","quantity":"2"}}
+
+### 3. Дополнительная продажа
+POST {{base}}/sales
+Content-Type: application/json
+Accept: application/json
+
+{"department_id":1,"product_id":1,"sale_date":"2026-05-01","quantity":"3"}
+
+### 4. Список
+GET {{base}}/sales
+Accept: application/json
+
+### 5. Изменение количества
+PATCH {{base}}/sales/2
+Content-Type: application/json
+Accept: application/json
+
+{"quantity":"4"}
+
+### 6. План: выручка 753.00, выполнение 75.30% после шагов 1–5
+GET {{base}}/reports/daily?date=2026-05-01
+Accept: application/json
+
+### 7. Спрос: 6 упаковок, 2 записи продаж
+GET {{base}}/reports/demand?from=2026-05-01&to=2026-05-31
+Accept: application/json
+
+### 8. Удаление второй продажи (204)
+DELETE {{base}}/sales/2
+Accept: application/json
+
+### 9. Попытка удалить последнюю (409)
+DELETE {{base}}/sales/1
+Accept: application/json

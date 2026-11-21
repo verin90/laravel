@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><title>Лабораторная работа №9 — ТОРГОВЛЯ</title>
+<style>body{font:17px/1.6 'Segoe UI',sans-serif;color:#172b43;max-width:1100px;margin:40px auto;padding:0 24px}h1,h2{line-height:1.2}svg{width:100%;height:auto}table{border-collapse:collapse;width:100%}td,th{padding:9px;border:1px solid #ccd6e0;text-align:left}code{background:#edf2f7;padding:2px 4px}small{color:#42566a}@media print{body{margin:0;font-size:12px}svg{max-height:400px}}</style>
+<h1>ТОРГОВЛЯ</h1><p>Лабораторная работа №9. REST API на PHP / Laravel 11, СУБД MySQL 8.4.</p>
+<h2>Выбранная диаграмма — классов</h2>
+<p>Диаграмма классов отражает сущности предметной области, их атрибуты, методы связей Eloquent и кратности. Она подходит для проектирования базы данных и моделей API. Отдельные диаграммы других видов не используются.</p>
+<svg viewBox="0 0 1080 530" role="img" aria-label="Диаграмма классов: отдел связан с одной или несколькими продажами, товар — с нулём или несколькими продажами. Каждая продажа имеет один отдел и один товар.">
+<defs><style>.box{fill:#f6f9fc;stroke:#294e70;stroke-width:2}.head{fill:#deebf6}.line{stroke:#294e70;stroke-width:2;fill:none}.title{font:bold 19px sans-serif}.attr{font:15px monospace}.rel{font:16px sans-serif}</style></defs>
+<rect class="box" x="10" y="30" width="325" height="285"/><rect class="head" x="11" y="31" width="323" height="43"/>
+<text class="title" x="27" y="59">Отдел / Department</text><path class="line" d="M10 75H335 M10 265H335"/>
+<g class="attr"><text x="24" y="103">id: bigint [PK]</text><text x="24" y="130">code: varchar(30) [UQ]</text><text x="24" y="157">name: varchar(255)</text><text x="24" y="184">manager_name: varchar(255)</text><text x="24" y="211">phone: varchar(30)</text><text x="24" y="238">daily_plan: decimal(14,2)</text><text x="24" y="295">sales(): HasMany</text></g>
+<rect class="box" x="745" y="30" width="325" height="285"/><rect class="head" x="746" y="31" width="323" height="43"/>
+<text class="title" x="762" y="59">Товар / Product</text><path class="line" d="M745 75H1070 M745 265H1070"/>
+<g class="attr"><text x="759" y="103">id: bigint [PK]</text><text x="759" y="130">sku: varchar(50) [UQ]</text><text x="759" y="157">name: varchar(255)</text><text x="759" y="184">unit: varchar(30)</text><text x="759" y="211">retail_price: decimal(14,2)</text><text x="759" y="295">sales(): HasMany</text></g>
+<rect class="box" x="365" y="170" width="350" height="335"/><rect class="head" x="366" y="171" width="348" height="43"/>
+<text class="title" x="382" y="199">Продажа / Sale</text><path class="line" d="M365 215H715 M365 430H715"/>
+<g class="attr"><text x="379" y="244">id: bigint [PK]</text><text x="379" y="272">department_id: bigint [FK]</text><text x="379" y="300">product_id: bigint [FK]</text><text x="379" y="328">sale_date: date</text><text x="379" y="356">quantity: decimal(12,3)</text><text x="379" y="384">unit_price: decimal(14,2)</text><text x="379" y="459">department(): BelongsTo</text><text x="379" y="487">product(): BelongsTo</text></g>
+<path class="line" d="M172 315V375H365 M908 315V375H715"/>
+<g class="rel"><text x="185" y="340">1</text><text x="309" y="364">1..*</text><text x="895" y="340">1</text><text x="725" y="364">0..*</text><text x="182" y="402">осуществляет</text><text x="772" y="402">участвует</text></g>
+</svg>
+<p><b>Связи:</b> отдел имеет минимум одну продажу; товар может не иметь продаж. Каждая продажа обязательно относится ровно к одному отделу и одному товару. Внешние ключи не допускают NULL. PK — первичный ключ, FK — внешний ключ, UQ — уникальное значение.</p>
+<h2>Принятые решения</h2>
+<p>Код отдела и артикул товара — уникальные бизнес-идентификаторы; внутренние id служат для связей. daily_plan трактуется как дневной план в рублях. Это допущение позволяет сравнивать план с фактической выручкой. План считается постоянным: изменение daily_plan влияет и на отчёты за прошлые даты. Для исторических планов потребуется отдельная таблица планов по датам.</p>
+<p>Одна продажа содержит один вид товара. Количество может быть дробным (до трёх знаков), цены — с двумя знаками. unit_price сохраняет текущую розничную цену при регистрации продажи; при смене товара в продаже цена обновляется. Пользователь не задаёт unit_price вручную. Выручка вычисляется как сумма округлённых до копеек произведений количества и сохранённой цены.</p>
+<p>Отдел создаётся атомарно с initial_sale. Последнюю продажу отдела нельзя удалить или перенести. Связанные отделы и товары защищены от удаления (409). Все изменения API выполняются в транзакциях с общей блокировкой trade_locks: это простой способ исключить гонки для учебного проекта; при высокой нагрузке его следует заменить более детальными блокировками. FK и CHECK обеспечивают ссылочную целостность и диапазоны в MySQL. Обязательное наличие продажи у отдела обеспечивает приложение: прямой SQL в обход API может нарушить это правило.</p>
+<p>«Ежедневно несколько продаж» рассматривается как описание деятельности, а не ограничение минимум две записи на каждую календарную дату: требование не задаёт рабочий календарь. Кратность 1..* реализует явно заданное обязательное участие отдела в продажах.</p>
+<h2>API</h2>
+<table><tr><th>Метод и адрес</th><th>Назначение</th></tr>
+<tr><td>GET /api/{entity}</td><td>Список, пагинация по 25 записей, параметр page</td></tr>
+<tr><td>POST /api/{entity}</td><td>Создание (201)</td></tr><tr><td>GET /api/{entity}/{id}</td><td>Просмотр (200)</td></tr>
+<tr><td>PUT / PATCH /api/{entity}/{id}</td><td>Полная / частичная замена (200)</td></tr><tr><td>DELETE /api/{entity}/{id}</td><td>Удаление (204 без тела)</td></tr>
+<tr><td>GET /api/reports/daily?date=2026-05-01</td><td>План, выручка, отклонение и процент по каждому отделу. При плане 0 процент равен null.</td></tr>
+<tr><td>GET /api/reports/demand?from=2026-05-01&amp;to=2026-05-31</td><td>Количество, выручка и число продаж каждого товара за включительный период. Порядок по числу продаж убыванию, затем id.</td></tr></table>
+<p>entity: departments, products, sales. Показатель спроса — число записей продаж: количества разных единиц измерения нельзя корректно сравнивать напрямую. Товары без продаж включены с нулевыми показателями. Отчёт спроса возвращает весь каталог без пагинации.</p>
+<p>Ошибки: 404 — запись не найдена, 422 — неверные поля, 409 — нарушение бизнес-правила. API возвращает JSON. FormRequest проверяет входные данные, контроллер применяет бизнес-правила, Repository изолирует CRUD, Eloquent работает с MySQL, Resource формирует выдачу.</p>
+<h2>Запуск и проверка</h2><p>См. <a href="../START.txt">START.txt</a> и <a href="../requests.http">requests.http</a>. Исходник этой же диаграммы: <a href="classes.puml">classes.puml</a>.</p>
+<p>API предназначен для лабораторной работы и запуска на localhost. Авторизация в объём задания не включена.</p>
+<p>Реализация сверена с официальными разделами Laravel 11: <a href="https://laravel.com/docs/11.x/routing">Routing</a> и <a href="https://laravel.com/docs/11.x/validation">Validation</a>.</p>
+</html>
